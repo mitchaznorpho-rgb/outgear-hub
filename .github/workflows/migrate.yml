@@ -1,10 +1,10 @@
-name: Migrate DB
+name: Init DB (db push)
 on:
   workflow_dispatch:
   push:
     branches: [ main ]
 jobs:
-  migrate:
+  init:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,6 +15,9 @@ jobs:
       - run: npx prisma generate
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      - run: npx prisma migrate deploy
+          DIRECT_URL:   ${{ secrets.DIRECT_URL }}
+      # First-time deploy: push schema (no migrations required)
+      - run: npx prisma db push --accept-data-loss
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL:   ${{ secrets.DIRECT_URL }}
