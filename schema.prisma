@@ -1,0 +1,110 @@
+generator client { provider = "prisma-client-js" }
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled (6543, pgbouncer)
+  directUrl = env("DIRECT_URL")   // direct (5432) for migrations
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  roles     String[] @default([])
+  vehicles  Vehicle[]
+  bookings  StorageBooking[]
+}
+
+model Host {
+  id      String @id @default(cuid())
+  name    String
+  city    String
+  state   String
+  lat     Float
+  lon     Float
+  gated   Boolean @default(false)
+  spaces  Space[]
+}
+
+model Space {
+  id            String  @id @default(cuid())
+  hostId        String
+  host          Host    @relation(fields:[hostId], references:[id])
+  title         String
+  type          String   // RV, Boat, OHV
+  maxLengthFt   Int
+  priceMonthly  Int
+  features      String[]
+  images        String[]
+  listings      Listing[]
+}
+
+model Listing {
+  id       String @id @default(cuid())
+  spaceId  String
+  space    Space  @relation(fields:[spaceId], references:[id])
+  active   Boolean @default(true)
+}
+
+model StorageBooking {
+  id        String @id @default(cuid())
+  userId    String
+  user      User   @relation(fields:[userId], references:[id])
+  spaceId   String
+  space     Space  @relation(fields:[spaceId], references:[id])
+  start     DateTime
+  end       DateTime
+  priceMonthly Int
+  status    String
+}
+
+model Vehicle {
+  id        String @id @default(cuid())
+  ownerId   String
+  owner     User   @relation(fields:[ownerId], references:[id])
+  title     String
+  kind      String
+  lengthFt  Int
+  sleeps    Int
+  hasTrailerIncluded Boolean @default(false)
+  nightly   Int
+  minNights Int
+  description String?
+  images    String[]
+  storedAtBookingId String?
+  storedAt  StorageBooking? @relation(fields:[storedAtBookingId], references:[id])
+  blocks    VehicleBlock[]
+  rentals   RentalReservation[]
+}
+
+model VehicleBlock {
+  id        String @id @default(cuid())
+  vehicleId String
+  vehicle   Vehicle @relation(fields:[vehicleId], references:[id])
+  start     DateTime
+  end       DateTime
+  reason    String?
+}
+
+model RentalReservation {
+  id        String @id @default(cuid())
+  vehicleId String
+  vehicle   Vehicle @relation(fields:[vehicleId], references:[id])
+  renterId  String
+  renter    User   @relation(fields:[renterId], references:[id])
+  start     DateTime
+  end       DateTime
+  nightly   Int
+  status    String
+  window    String?
+  release   ReleasePass?
+}
+
+model ReleasePass {
+  id        String @id @default(cuid())
+  reservationId String @unique
+  reservation   RentalReservation @relation(fields:[reservationId], references:[id])
+  code      String
+  pin       String
+  status    String   // preview, active, used
+}
